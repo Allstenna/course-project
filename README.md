@@ -1,2 +1,2 @@
-# course-project
-Just to pass the subject
+# Online store of farm products
+
