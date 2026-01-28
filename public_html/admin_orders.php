@@ -44,11 +44,11 @@ $orders = $stmt->fetchAll();
         <tbody>
             <?php foreach ($orders as $order): ?>
             <tr>
-                <td><?= $order['order_id'] ?></td>
-                <td><?= $order['created_at'] ?></td>
+                <td><?= htmlspecialchars($order['order_id']) ?></td>
+                <td><?= htmlspecialchars($order['created_at']) ?></td>
                 <td><?= htmlspecialchars($order['email']) ?></td>
                 <td><?= htmlspecialchars($order['title']) ?></td>
-                <td><?= $order['price'] ?> ₽</td>
+                <td><?= htmlspecialchars($order['price']) ?> ₽</td>
             </tr>
             <?php endforeach; ?>
         </tbody>
