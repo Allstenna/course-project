@@ -2,6 +2,10 @@
 session_start();
 require '../db.php';
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'];
     $pass = $_POST['password'];
@@ -75,9 +79,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <button type="submit" class="btn btn-primary w-100">Авторизироваться</button>
                     </form>
                     <div class="mt-3 text-center">
-                        <a href="register.php">Нет аккаунта? Регистрация</a>
+                        <a href="register.php">Регистрация</a>
                     </div>
-
                     <?php endif; ?>
                 </div>
             </div>
