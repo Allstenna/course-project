@@ -2,9 +2,29 @@
 session_start();
 require '../db.php';
 
-// 1. Получаем все товары из базы
-// ORDER BY id DESC означает "сначала новые"
-$stmt = $pdo->query("SELECT * FROM products ORDER BY id DESC");
+// index.php (PHP блок сверху)
+$search_query = $_GET['q'] ?? '';
+
+// 3. Формируем запрос
+$sql = "SELECT * FROM products";
+$params = [];
+$where_clauses = [];
+
+if (!empty($search_query)) {
+    $where_clauses[] = "title LIKE ?";
+    $params[] = "%" . $search_query . "%";
+}
+
+// Добавляем WHERE, если есть условия
+if (!empty($where_clauses)) {
+    $sql .= " WHERE " . implode(" AND ", $where_clauses);
+}
+
+$sql .= " ORDER BY id DESC";
+
+// 4. Выполняем запрос
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
 $products = $stmt->fetchAll();
 ?>
 
@@ -42,12 +62,34 @@ $products = $stmt->fetchAll();
 <div class="container">
     <h2 class="mb-4">Каталог товаров</h2>
     
+        <!-- index.php -->
+    <div class="card mb-4 p-3 bg-light">
+        <form action="index.php" method="GET" class="row g-3">
+            <!-- Поле текстового поиска -->
+            <div class="col-md-8">
+                <input type="text" name="q" class="form-control" 
+                       placeholder="Поиск по названию..." 
+                       value="<?= htmlspecialchars($_GET['q'] ?? '') ?>">
+            </div>
+            
+            <!-- Кнопка отправки -->
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary w-100" name="searchBtn">Найти</button>
+            </div>
+            
+            <!-- Ссылка для сброса фильтров -->
+            <div class="col-12 text-end">
+                <a href="index.php" class="text-muted text-decoration-none small">Сбросить фильтры</a>
+            </div>
+        </form>
+    </div>
+    
     <div class="row">
         <?php foreach ($products as $product): ?>
             <div class="col-md-4 mb-4">
                 <div class="card h-100 p-2">
                     <!-- Если картинки нет, ставим заглушку -->
-                    <?php $img = $product['image_url'] ?: 'https://via.placeholder.com/300'; ?>
+                    <?php $img = trim($product['image_url']) ?: 'https://via.placeholder.com/300'; ?>
                     <img src="<?= htmlspecialchars($img) ?>" class="card-img-top" alt="Фото" style="height: 200px; object-fit: cover;">
                     
                     <div class="card-body">
@@ -56,13 +98,16 @@ $products = $stmt->fetchAll();
                         <p class="card-text fw-bold text-primary"><?= htmlspecialchars($product['price']) ?> ₽</p>
                     </div>
                     <div class="card-footer bg-white border-top-0">
-                        <a href="make_order.php?id=<?= $product['id'] ?>" class="btn btn-primary">Купить</a>
+                        <a href="make_order.php?id=<?= (int)$product['id'] ?>" class="btn btn-primary">Купить</a>
                     </div>
                 </div>
             </div>
         <?php endforeach; ?>
         
-        <?php if (count($products) === 0): ?>
+        <?php if (count($products) === 0 && !empty($search_query)): ?>
+            <p class="text-muted">Таких товаров нет. Попробуйте изменить поиск.</p>
+        <?php endif; ?>
+        <?php if (count($products) === 0 && empty($search_query)): ?>
             <p class="text-muted">Товаров пока нет. Зайдите под админом и добавьте их.</p>
         <?php endif; ?>
     </div>

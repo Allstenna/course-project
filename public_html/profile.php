@@ -11,6 +11,10 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
+$stmt = $pdo->prepare("SELECT avatar_url FROM users WHERE id = ?");
+$stmt->execute([$user_id]);
+$user_avatar = $stmt->fetchColumn();
+
 // 3. БЕЗОПАСНЫЙ ЗАПРОС (Anti-IDOR)
 // Мы выбираем только те заказы, где user_id совпадает с текущим пользователем.
 // Используем JOIN, чтобы получить название товара и цену из таблицы products.
@@ -41,6 +45,15 @@ $my_orders = $stmt->fetchAll();
     <title>Личный кабинет</title>
     <!-- Подключаем Bootstrap для красоты -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .btn-opacity {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .btn-opacity:hover {
+            opacity: 1;
+        }
+    </style>
 </head>
 <body class="bg-light">
 
@@ -61,11 +74,20 @@ $my_orders = $stmt->fetchAll();
         <div class="row">
             <div class="col-md-3">
                 <div class="card shadow-sm">
-                    <div class="d-flex justify-content-center">
-                        <img src="https://i.pinimg.com/originals/9f/4c/f0/9f4cf0f24b376077a2fcdab2e85c3584.jpg" class="rounded-circle border border-2 border-dark mt-4" style="object-fit: cover; height: 100px;">
+                    <div class="d-flex flex-column align-items-center">
+                        <img src="<?= htmlspecialchars($user_avatar) ?>" class="rounded-circle border border-2 border-dark mt-4" style="object-fit: cover; height: 100px;">
+                        <button type="button"
+                            class="btn start-50 translate-middle btn-opacity"
+                            style="position: absolute; top: 75px; width: 40px; height: 40px; padding: 0; border-radius: 50%;"
+                            data-bs-toggle="modal" 
+                            data-bs-target="#ModalEditImg">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#FFF" class="bi bi-pencil" viewBox="0 0 16 16">
+                              <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/>
+                            </svg>
+                        </button>
                     </div>
                     <div class="card-body">
-                        <p class="fw-bold text-center fs-5 mt-2">User</p>
+                        <p class="fw-bold text-center fs-5">User</p>
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item"><a class="link-underline link-underline-opacity-0 fst-italic" href="change_pass.php" style="color: #000;">Сменить пароль</a></li>
                          </ul>
@@ -142,8 +164,30 @@ $my_orders = $stmt->fetchAll();
                     </div>
                 </div>
             </div>
+            <div class="modal fade" id="ModalEditImg" tabindex="-1" role="dialog">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="exampleModalLabel">Загрузите изображение</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <form action="upload.php" method="POST" enctype="multipart/form-data">
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Выберите изображение:</label>
+                                    <input type="file" name="file" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="submit" class="btn btn-success">Загрузить</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
 </body>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </html>
