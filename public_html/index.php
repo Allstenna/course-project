@@ -5,6 +5,16 @@ require '../db.php';
 // index.php (PHP блок сверху)
 $search_query = $_GET['q'] ?? '';
 
+/* $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$limit = 2;
+$offset = ($page - 1) * $limit;
+
+// Получаем общее кол-во товаров (для кнопок 1, 2, 3...)
+$total_stmt = $pdo->query("SELECT COUNT(*) FROM products");
+$total_rows = $total_stmt->fetchColumn();
+$total_pages = ceil($total_rows / $limit);*/
+
+
 // 3. Формируем запрос
 $sql = "SELECT * FROM products";
 $params = [];
@@ -99,6 +109,10 @@ $products = $stmt->fetchAll();
                     </div>
                     <div class="card-footer bg-white border-top-0">
                         <a href="make_order.php?id=<?= (int)$product['id'] ?>" class="btn btn-primary">Купить</a>
+                        <?php if ($_SESSION['user_role'] === 'admin'): ?>
+                            <a href="edit_item.php?id=<?= (int)$product['id'] ?>" class="btn btn-info">✏️</a>
+                            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#ModalDelProd">🗑️</button>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -112,6 +126,36 @@ $products = $stmt->fetchAll();
         <?php endif; ?>
     </div>
 </div>
-
+<div class="modal fade" id="ModalDelProd" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Удаление товара</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="delete_item.php" method="POST" onsubmit="return confirm('Вы уверены?');">
+                <div class="modal-body">
+                    <input type="hidden" name="id" value="<?= $products['id'] ?>">
+                    <!-- CSRF токен обязателен! (см. урок от 29.01) -->
+                    <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                    <p>Вы точно хотите удалить данный товар?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-danger btn-sm">🗑️ Удалить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<nav>
+  <ul class="pagination">
+    <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+      <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
+        <a class="page-link" href="?page=<?= $i ?>"><?= $i ?></a>
+      </li>
+    <?php endfor; ?>
+  </ul>
+</nav>
 </body>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </html>

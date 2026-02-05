@@ -29,8 +29,8 @@ $orders = $stmt->fetchAll();
 </head>
 <body class="p-4">
     <h1>Все заказы</h1>
-    <a href="index.php">На главную</a>
-    
+    <a href="index.php" class="btn btn-secondary">На главную</a>
+    <a href="edit_item.php?id=<?= $item['id'] ?>" class="btn btn-info">✏️</a>
     <table class="table table-bordered mt-3">
         <thead>
             <tr>

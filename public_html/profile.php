@@ -18,23 +18,40 @@ $user_avatar = $stmt->fetchColumn();
 // 3. БЕЗОПАСНЫЙ ЗАПРОС (Anti-IDOR)
 // Мы выбираем только те заказы, где user_id совпадает с текущим пользователем.
 // Используем JOIN, чтобы получить название товара и цену из таблицы products.
-$sql = "
-    SELECT 
-        orders.id as order_id, 
-        orders.created_at, 
-        orders.status, 
-        products.title, 
-        products.price,
-        products.image_url
-    FROM orders 
-    JOIN products ON orders.product_id = products.id 
-    WHERE orders.user_id = ? 
-    ORDER BY orders.created_at DESC
-";
-
-$stmt = $pdo->prepare($sql);
-$stmt->execute([$user_id]);
-$my_orders = $stmt->fetchAll();
+if ($_SESSION['user_role'] === 'admin'){
+    $sql = "
+        SELECT 
+            orders.id as order_id,
+            orders.created_at,
+            users.email,
+            products.title,
+            products.price
+        FROM orders
+        JOIN users ON orders.user_id = users.id
+        JOIN products ON orders.product_id = products.id
+        ORDER BY orders.id DESC
+        
+    ";
+    $stmt = $pdo->query($sql);
+    $orders = $stmt->fetchAll();
+}else{
+    $sql = "
+        SELECT 
+            orders.id as order_id, 
+            orders.created_at, 
+            orders.status, 
+            products.title, 
+            products.price,
+            products.image_url
+        FROM orders 
+        JOIN products ON orders.product_id = products.id 
+        WHERE orders.user_id = ? 
+        ORDER BY orders.created_at DESC
+    ";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$user_id]);
+    $my_orders = $stmt->fetchAll();
+}
 ?>
 
 <!DOCTYPE html>
@@ -97,68 +114,100 @@ $my_orders = $stmt->fetchAll();
             <div class="col-md-9">
                 <div class="card shadow-sm">
                     <div class="card-header bg-white">
-                        <h2 class="mb-0">Мои заказы</h2>
+                        <?php if($_SESSION['user_role'] === 'admin'): ?>
+                            <h2>Все заказы</h2>
+                            <a href="index.php" class="btn btn-secondary">На главную</a>
+                        <?php else: ?>
+                            <h2 class="mb-0">Мои заказы</h2>
+                        <?php endif; ?>
                     </div>
                     <div class="card-body">
                         
                         <!-- Проверка: Есть ли заказы вообще? -->
-                        <?php if (count($my_orders) > 0): ?>
-                            
+                        <?php if($_SESSION['user_role'] === 'admin'): ?>
                             <div class="table-responsive">
-                                <table class="table table-hover align-middle">
-                                    <thead class="table-light">
+                                <table class="table table-bordered mt-3">
+                                    <thead>
                                         <tr>
-                                            <th>№ Заказа</th>
+                                            <th>ID Заказа</th>
                                             <th>Дата</th>
+                                            <th>Клиент (Email)</th>
                                             <th>Товар</th>
                                             <th>Цена</th>
-                                            <th>Статус</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <?php foreach ($my_orders as $order): ?>
-                                            <tr>
-                                                <!-- ID заказа -->
-                                                <td>#<?= $order['order_id'] ?></td>
-                                                
-                                                <!-- Дата (форматируем красиво) -->
-                                                <td>
-                                                    <?= date('d.m.Y H:i', strtotime($order['created_at'])) ?>
-                                                </td>
-                                                
-                                                <!-- Название товара (защита от XSS) -->
-                                                <td>
-                                                    <strong><?= htmlspecialchars($order['title']) ?></strong>
-                                                </td>
-                                                
-                                                <!-- Цена -->
-                                                <td><?= number_format($order['price'], 0, '', ' ') ?> ₽</td>
-                                                
-                                                <!-- Статус с цветным бейджиком -->
-                                                <td>
-                                                    <?php 
-                                                    // Логика цвета для статуса
-                                                    $status_color = 'secondary';
-                                                    if ($order['status'] == 'new') $status_color = 'primary';
-                                                    if ($order['status'] == 'processing') $status_color = 'warning';
-                                                    if ($order['status'] == 'done') $status_color = 'success';
-                                                    ?>
-                                                    <span class="badge bg-<?= $status_color ?>">
-                                                        <?= htmlspecialchars($order['status']) ?>
-                                                    </span>
-                                                </td>
-                                            </tr>
+                                        <?php foreach ($orders as $order): ?>
+                                        <tr>
+                                            <td><?= $order['order_id'] ?></td>
+                                            <td><?= $order['created_at'] ?></td>
+                                            <td><?= htmlspecialchars($order['email']) ?></td>
+                                            <td><?= htmlspecialchars($order['title']) ?></td>
+                                            <td><?= $order['price'] ?> ₽</td>
+                                        </tr>
                                         <?php endforeach; ?>
                                     </tbody>
                                 </table>
                             </div>
-
                         <?php else: ?>
-                            <!-- Если заказов нет -->
-                            <div class="text-center py-5">
-                                <h4 class="text-muted">Вы еще ничего не заказывали.</h4>
-                                <a href="index.php" class="btn btn-primary mt-3">Перейти в каталог</a>
-                            </div>
+                            <?php if (count($my_orders) > 0): ?>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>№ Заказа</th>
+                                                <th>Дата</th>
+                                                <th>Товар</th>
+                                                <th>Цена</th>
+                                                <th>Статус</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($my_orders as $order): ?>
+                                                <tr>
+                                                    <!-- ID заказа -->
+                                                    <td>#<?= $order['order_id'] ?></td>
+                                                    
+                                                    <!-- Дата (форматируем красиво) -->
+                                                    <td>
+                                                        <?= date('d.m.Y H:i', strtotime($order['created_at'])) ?>
+                                                    </td>
+                                                    
+                                                    <!-- Название товара (защита от XSS) -->
+                                                    <td>
+                                                        <strong><?= htmlspecialchars($order['title']) ?></strong>
+                                                    </td>
+                                                    
+                                                    <!-- Цена -->
+                                                    <td><?= number_format($order['price'], 0, '', ' ') ?> ₽</td>
+                                                    
+                                                    <!-- Статус с цветным бейджиком -->
+                                                    <td>
+                                                        <?php 
+                                                        // Логика цвета для статуса
+                                                        $status_color = 'secondary';
+                                                        if ($order['status'] == 'new') $status_color = 'primary';
+                                                        if ($order['status'] == 'processing') $status_color = 'warning';
+                                                        if ($order['status'] == 'done') $status_color = 'success';
+                                                        ?>
+                                                        <span class="badge bg-<?= $status_color ?>">
+                                                            <?= htmlspecialchars($order['status']) ?>
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+    
+                            <?php else: ?>
+                                <!-- Если заказов нет -->
+                                <div class="text-center py-5">
+                                    <h4 class="text-muted">Вы еще ничего не заказывали.</h4>
+                                    <a href="index.php" class="btn btn-primary mt-3">Перейти в каталог</a>
+                                </div>
+                            <?php endif; ?>
                         <?php endif; ?>
 
                     </div>
